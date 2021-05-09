@@ -2,6 +2,7 @@ use crate::cubit::Cubit;
 use crate::error::Error;
 use nalgebra::Vector3;
 
+/// Represents a full Puzzle Cube.
 #[derive(Debug)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct Cube {
@@ -11,6 +12,9 @@ pub struct Cube {
 }
 
 impl Cube {
+    /// Create a Puzzle Cube where sides is the numer of cubits on an edge.
+    ///
+    /// So `sides=10` would create a 10x10x10 cube.
     pub fn with_number_sides(sides: usize) -> Result<Self, Error> {
         if sides < 2 {
             return Err(Error::InvalidNumberSides(sides));
@@ -48,10 +52,12 @@ impl Cube {
         Ok(cube)
     }
 
+    /// Create a 2x2x2 Cube.
     pub fn new2x2x2() -> Self {
         Self::with_number_sides(2).expect("2 is a valid number of sides")
     }
 
+    /// Create a 3x3x3 Cube.
     pub fn new3x3x3() -> Self {
         Self::with_number_sides(3).expect("3 is a valid number of sides")
     }

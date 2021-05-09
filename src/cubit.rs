@@ -4,7 +4,7 @@ use nalgebra::{Matrix3x4, Vector3};
 /// position and orientation inside of the whole cube.
 #[derive(Debug)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
-pub struct Cubit {
+pub(crate) struct Cubit {
     // the Position in first column (x, y, z)
     // the Blue/Green Vector in the 2nd column (x-axis blue positive)
     // the Red/Orange Vector in the 3rd column (y-axis red positive)
@@ -23,7 +23,10 @@ impl Cubit {
         Cubit { inner }
     }
 
-    pub fn std_from_position(pos: Vector3<isize>) -> Self {
+    /// Create a Cubit in the standard orientation at a given postion.
+    /// Creating a Cube where all Cubits are created with this function will create
+    /// a solved Cube.
+    pub(crate) fn std_from_position(pos: Vector3<isize>) -> Self {
         let (ox, oy, oz) = new_std_orientation();
         Self::new(pos, ox, oy, oz)
     }
