@@ -3,6 +3,7 @@ use nalgebra::{Matrix3x4, Vector3};
 /// A Cubit a single piece of the whole puzzle. It has information about its
 /// position and orientation inside of the whole cube.
 #[derive(Debug)]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct Cubit {
     // the Position in first column (x, y, z)
     // the Blue/Green Vector in the 2nd column (x-axis blue positive)

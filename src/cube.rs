@@ -1,17 +1,17 @@
-use nalgebra::Vector3;
-
 use crate::cubit::Cubit;
 use crate::error::Error;
+use nalgebra::Vector3;
 
 #[derive(Debug)]
-struct Cube {
+#[cfg_attr(test, derive(PartialEq, Eq))]
+pub struct Cube {
     sides: usize,
-    // FIX: When you can start evaluating generics, change this Vec to use an array
+    // fix: when you can start evaluating generics, change this vec to use an array
     cubits: Vec<Cubit>,
 }
 
 impl Cube {
-    fn with_number_sides(sides: usize) -> Result<Self, Error> {
+    pub fn with_number_sides(sides: usize) -> Result<Self, Error> {
         if sides < 2 {
             return Err(Error::InvalidNumberSides(sides));
         }
@@ -48,11 +48,11 @@ impl Cube {
         Ok(cube)
     }
 
-    fn new2x2x2() -> Self {
+    pub fn new2x2x2() -> Self {
         Self::with_number_sides(2).expect("2 is a valid number of sides")
     }
 
-    fn new3x3x3() -> Self {
+    pub fn new3x3x3() -> Self {
         Self::with_number_sides(3).expect("3 is a valid number of sides")
     }
 
@@ -75,5 +75,104 @@ impl Cube {
     #[inline]
     fn even_sides(&self) -> bool {
         self.sides % 2 == 0
+    }
+}
+#[cfg(test)]
+mod test {
+    use super::Cube;
+    use crate::cubit::Cubit;
+    use crate::error::Error;
+    use nalgebra::Vector3;
+
+    #[test]
+    fn test_invalid_side() {
+        let maybe_cube = Cube::with_number_sides(1);
+        match maybe_cube {
+            Ok(_) => panic!("expected to get an error but didn't"),
+            Err(e) => assert_eq!(e, Error::InvalidNumberSides(1)),
+        }
+    }
+
+    #[test]
+    fn test_2x2x2() {
+        let cube = Cube::new2x2x2();
+        let mut cubits = Vec::new();
+        for z in -1..=1 {
+            if z % 2 == 0 {
+                continue;
+            }
+            for x in -1..=1 {
+                if x % 2 == 0 {
+                    continue;
+                }
+                for y in -1..=1 {
+                    if y % 2 == 0 {
+                        continue;
+                    }
+                    cubits.push(Cubit::std_from_position(Vector3::new(x, y, z)))
+                }
+            }
+        }
+        assert_eq!(cube, Cube { sides: 2, cubits })
+    }
+
+    #[test]
+    fn test_3x3x3() {
+        let cube = Cube::new3x3x3();
+        let mut cubits = Vec::new();
+        for z in -1..=1 {
+            for x in -1..=1 {
+                for y in -1..=1 {
+                    if x == 0 && y == 0 && z == 0 {
+                        continue;
+                    }
+                    cubits.push(Cubit::std_from_position(Vector3::new(x, y, z)))
+                }
+            }
+        }
+        assert_eq!(cube, Cube { sides: 3, cubits })
+    }
+
+    #[test]
+    fn test_4x4x4() {
+        let cube = Cube::with_number_sides(4).unwrap();
+        let mut cubits = Vec::new();
+        for z in -3..=3 {
+            if z % 2 == 0 {
+                continue;
+            }
+            for x in -3..=3 {
+                if x % 2 == 0 {
+                    continue;
+                }
+                for y in -3..=3 {
+                    if y % 2 == 0 {
+                        continue;
+                    }
+                    if x > -3 && x < 3 && y > -3 && y < 3 && z > -3 && z < 3 {
+                        continue;
+                    }
+                    cubits.push(Cubit::std_from_position(Vector3::new(x, y, z)))
+                }
+            }
+        }
+        assert_eq!(cube, Cube { sides: 4, cubits })
+    }
+
+    #[test]
+    fn test_5x5x5() {
+        let cube = Cube::with_number_sides(5).unwrap();
+        let mut cubits = Vec::new();
+        for z in -2..=2 {
+            for x in -2..=2 {
+                for y in -2..=2 {
+                    if x > -2 && x < 2 && y > -2 && y < 2 && z > -2 && z < 2 {
+                        continue;
+                    }
+                    cubits.push(Cubit::std_from_position(Vector3::new(x, y, z)))
+                }
+            }
+        }
+        assert_eq!(cube, Cube { sides: 5, cubits })
     }
 }
