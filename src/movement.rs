@@ -91,66 +91,66 @@ pub struct Move {
 
 impl Move {
     /// Rotate the top side of the cube.
-    pub fn rotate_top(layer: Layer, move_type: MoveType) -> Result<Self, Error> {
-        Ok(Move {
+    pub fn rotate_top(layer: Layer, move_type: MoveType) -> Self {
+        Move {
             move_type,
             axis: AxisInner::Z,
             affected_range: layer.into(),
-        })
+        }
     }
 
     /// Rotate the bottom side of the cube.
-    pub fn rotate_bottom(layer: Layer, move_type: MoveType) -> Result<Self, Error> {
-        Ok(Move {
+    pub fn rotate_bottom(layer: Layer, move_type: MoveType) -> Self {
+        Move {
             move_type,
             axis: AxisInner::NegZ,
             affected_range: layer.into(),
-        })
+        }
     }
 
     /// Rotate the left side of the cube.
-    pub fn rotate_left(layer: Layer, move_type: MoveType) -> Result<Self, Error> {
-        Ok(Move {
+    pub fn rotate_left(layer: Layer, move_type: MoveType) -> Self {
+        Move {
             move_type,
             axis: AxisInner::NegY,
             affected_range: layer.into(),
-        })
+        }
     }
 
     /// Rotate the right side of the cube.
-    pub fn rotate_right(layer: Layer, move_type: MoveType) -> Result<Self, Error> {
-        Ok(Move {
+    pub fn rotate_right(layer: Layer, move_type: MoveType) -> Self {
+        Move {
             move_type,
             axis: AxisInner::Y,
             affected_range: layer.into(),
-        })
+        }
     }
 
     /// Rotate the front side of the cube.
-    pub fn rotate_front(layer: Layer, move_type: MoveType) -> Result<Self, Error> {
-        Ok(Move {
+    pub fn rotate_front(layer: Layer, move_type: MoveType) -> Self {
+        Move {
             move_type,
             axis: AxisInner::X,
             affected_range: layer.into(),
-        })
+        }
     }
 
     /// Rotate the back side of the cube.
-    pub fn rotate_back(layer: Layer, move_type: MoveType) -> Result<Self, Error> {
-        Ok(Move {
+    pub fn rotate_back(layer: Layer, move_type: MoveType) -> Self {
+        Move {
             move_type,
             axis: AxisInner::NegX,
             affected_range: layer.into(),
-        })
+        }
     }
 
     /// Rotate the whole cube around an axis.
-    pub fn rotate_cube(axis: Axis, move_type: MoveType) -> Result<Self, Error> {
-        Ok(Move {
+    pub fn rotate_cube(axis: Axis, move_type: MoveType) -> Self {
+        Move {
             move_type,
             axis: axis.into(),
             affected_range: LayerInner::WholeCube,
-        })
+        }
     }
 
     pub(crate) fn rotation_matrix(&self) -> &Matrix3<isize> {
@@ -194,3 +194,92 @@ static ROT_MAT_Y_2: Matrix3<isize> = Matrix3::new(-1, 0, 0, 0, 1, 0, 0, 0, -1);
 static ROT_MAT_X_CW: Matrix3<isize> = Matrix3::new(1, 0, 0, 0, 0, 1, 0, -1, 0);
 static ROT_MAT_X_CCW: Matrix3<isize> = Matrix3::new(1, 0, 0, 0, 0, -1, 0, 1, 0);
 static ROT_MAT_X_2: Matrix3<isize> = Matrix3::new(1, 0, 0, 0, -1, 0, 0, 0, -1);
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_rotation_matrix() {
+        let top_cw = Move::rotate_top(Layer::Single(0), MoveType::Clockwise);
+        let top_ccw = Move::rotate_top(Layer::Single(0), MoveType::CounterClockwise);
+        let top_2 = Move::rotate_top(Layer::Single(0), MoveType::Twice);
+
+        let btm_cw = Move::rotate_bottom(Layer::Single(0), MoveType::Clockwise);
+        let btm_ccw = Move::rotate_bottom(Layer::Single(0), MoveType::CounterClockwise);
+        let btm_2 = Move::rotate_bottom(Layer::Single(0), MoveType::Twice);
+
+        let left_cw = Move::rotate_left(Layer::Single(0), MoveType::Clockwise);
+        let left_ccw = Move::rotate_left(Layer::Single(0), MoveType::CounterClockwise);
+        let left_2 = Move::rotate_left(Layer::Single(0), MoveType::Twice);
+
+        let right_cw = Move::rotate_right(Layer::Single(0), MoveType::Clockwise);
+        let right_ccw = Move::rotate_right(Layer::Single(0), MoveType::CounterClockwise);
+        let right_2 = Move::rotate_right(Layer::Single(0), MoveType::Twice);
+
+        let front_cw = Move::rotate_front(Layer::Single(0), MoveType::Clockwise);
+        let front_ccw = Move::rotate_front(Layer::Single(0), MoveType::CounterClockwise);
+        let front_2 = Move::rotate_front(Layer::Single(0), MoveType::Twice);
+
+        let back_cw = Move::rotate_back(Layer::Single(0), MoveType::Clockwise);
+        let back_ccw = Move::rotate_back(Layer::Single(0), MoveType::CounterClockwise);
+        let back_2 = Move::rotate_back(Layer::Single(0), MoveType::Twice);
+
+        let cube_x_cw = Move::rotate_cube(Axis::X, MoveType::Clockwise);
+        let cube_x_ccw = Move::rotate_cube(Axis::X, MoveType::CounterClockwise);
+        let cube_x_2 = Move::rotate_cube(Axis::X, MoveType::Twice);
+
+        let cube_y_cw = Move::rotate_cube(Axis::Y, MoveType::Clockwise);
+        let cube_y_ccw = Move::rotate_cube(Axis::Y, MoveType::CounterClockwise);
+        let cube_y_2 = Move::rotate_cube(Axis::Y, MoveType::Twice);
+
+        let cube_z_cw = Move::rotate_cube(Axis::Z, MoveType::Clockwise);
+        let cube_z_ccw = Move::rotate_cube(Axis::Z, MoveType::CounterClockwise);
+        let cube_z_2 = Move::rotate_cube(Axis::Z, MoveType::Twice);
+
+        // ROT_MAT_Z_CW
+        assert_eq!(&ROT_MAT_Z_CW, top_cw.rotation_matrix());
+        assert_eq!(&ROT_MAT_Z_CW, btm_ccw.rotation_matrix());
+        assert_eq!(&ROT_MAT_Z_CW, cube_z_cw.rotation_matrix());
+
+        // ROT_MAT_Z_CCW
+        assert_eq!(&ROT_MAT_Z_CCW, top_ccw.rotation_matrix());
+        assert_eq!(&ROT_MAT_Z_CCW, btm_cw.rotation_matrix());
+        assert_eq!(&ROT_MAT_Z_CCW, cube_z_ccw.rotation_matrix());
+
+        // ROT_MAT_Z_CCW
+        assert_eq!(&ROT_MAT_Z_2, top_2.rotation_matrix());
+        assert_eq!(&ROT_MAT_Z_2, btm_2.rotation_matrix());
+        assert_eq!(&ROT_MAT_Z_2, cube_z_2.rotation_matrix());
+
+        // ROT_MAT_Y_CW
+        assert_eq!(&ROT_MAT_Y_CW, right_cw.rotation_matrix());
+        assert_eq!(&ROT_MAT_Y_CW, left_ccw.rotation_matrix());
+        assert_eq!(&ROT_MAT_Y_CW, cube_y_cw.rotation_matrix());
+
+        // ROT_MAT_Y_CCW
+        assert_eq!(&ROT_MAT_Y_CCW, right_ccw.rotation_matrix());
+        assert_eq!(&ROT_MAT_Y_CCW, left_cw.rotation_matrix());
+        assert_eq!(&ROT_MAT_Y_CCW, cube_y_ccw.rotation_matrix());
+
+        // ROT_MAT_Y_CCW
+        assert_eq!(&ROT_MAT_Y_2, right_2.rotation_matrix());
+        assert_eq!(&ROT_MAT_Y_2, left_2.rotation_matrix());
+        assert_eq!(&ROT_MAT_Y_2, cube_y_2.rotation_matrix());
+
+        // ROT_MAT_X_CW
+        assert_eq!(&ROT_MAT_X_CW, front_cw.rotation_matrix());
+        assert_eq!(&ROT_MAT_X_CW, back_ccw.rotation_matrix());
+        assert_eq!(&ROT_MAT_X_CW, cube_x_cw.rotation_matrix());
+
+        // ROT_MAT_X_CCW
+        assert_eq!(&ROT_MAT_X_CCW, front_ccw.rotation_matrix());
+        assert_eq!(&ROT_MAT_X_CCW, back_cw.rotation_matrix());
+        assert_eq!(&ROT_MAT_X_CCW, cube_x_ccw.rotation_matrix());
+
+        // ROT_MAT_X_CCW
+        assert_eq!(&ROT_MAT_X_2, front_2.rotation_matrix());
+        assert_eq!(&ROT_MAT_X_2, back_2.rotation_matrix());
+        assert_eq!(&ROT_MAT_X_2, cube_x_2.rotation_matrix());
+    }
+}

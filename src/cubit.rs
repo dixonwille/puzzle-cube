@@ -1,4 +1,4 @@
-use nalgebra::{Matrix3x4, Vector3};
+use nalgebra::{Matrix3, Matrix3x4, Vector3};
 
 /// A Cubit a single piece of the whole puzzle. It has information about its
 /// position and orientation inside of the whole cube.
@@ -29,6 +29,14 @@ impl Cubit {
     pub(crate) fn std_from_position(pos: Vector3<isize>) -> Self {
         let (ox, oy, oz) = new_std_orientation();
         Self::new(pos, ox, oy, oz)
+    }
+
+    pub(crate) fn get_position(&self) -> Vector3<isize> {
+        self.inner.column(0).into()
+    }
+
+    pub(crate) fn rotate(&mut self, rot: &Matrix3<isize>) {
+        self.inner = rot * self.inner;
     }
 }
 
