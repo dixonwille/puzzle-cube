@@ -1,8 +1,10 @@
-use std::ops::RangeInclusive;
-
-use crate::error::Error;
-use crate::{cubit::Cubit, movement::Move};
+use crate::{
+    cubit::Cubit,
+    error::Error,
+    movement::{LayerInner, Move},
+};
 use nalgebra::Vector3;
+use std::ops::RangeInclusive;
 
 /// Represents a full Puzzle Cube.
 #[derive(Debug)]
@@ -28,21 +30,19 @@ impl Cube {
         };
         let cubits = (0..full)
             .filter_map(|i| {
-                let v = cube.index_to_coords(i);
-                let ranges = cube.ranges();
-                if &v[(0)] == ranges.start()
-                    || &v[(0)] == ranges.end()
-                    || &v[(1)] == ranges.start()
-                    || &v[(1)] == ranges.end()
-                    || &v[(2)] == ranges.start()
-                    || &v[(2)] == ranges.end()
+                if ((i / cube.sides) % cube.sides) % (cube.sides - 1) == 0
+                    || (i % cube.sides) % (cube.sides - 1) == 0
+                    || (i / cube.sides.pow(2)) % (cube.sides - 1) == 0
                 {
-                    Some(Cubit::std_from_position(v))
+                    Some(Cubit::std_from_position(cube.index_to_coords(i)))
                 } else {
                     None
                 }
             })
-            .collect();
+            .fold(Vec::with_capacity(size), |mut v, c| {
+                v.push(c);
+                v
+            });
         cube.cubits = cubits;
         Ok(cube)
     }
@@ -67,9 +67,9 @@ impl Cube {
         // Can be done in a bunch of conditionals but I wonder if there is a
         // better approach
         match &mv.affected_range {
-            crate::LayerInner::Single(l) => {}
-            crate::LayerInner::Multiple(r) => {}
-            crate::LayerInner::WholeCube => {
+            LayerInner::Single(l) => {}
+            LayerInner::Multiple(r) => {}
+            LayerInner::WholeCube => {
                 // Nothing to do here as the whole cube is the default
             }
         }
@@ -215,5 +215,48 @@ mod test {
             }
         }
         assert_eq!(cube, Cube { sides: 5, cubits })
+    }
+
+    #[test]
+    fn test_99x99x99() {
+        let cube = Cube::with_number_sides(99).unwrap();
+        let mut cubits = Vec::new();
+        for z in -49..=49 {
+            for x in -49..=49 {
+                for y in -49..=49 {
+                    if x > -49 && x < 49 && y > -49 && y < 49 && z > -49 && z < 49 {
+                        continue;
+                    }
+                    cubits.push(Cubit::std_from_position(Vector3::new(x, y, z)))
+                }
+            }
+        }
+        assert_eq!(cube, Cube { sides: 99, cubits })
+    }
+
+    #[test]
+    fn test_100x100x100() {
+        let cube = Cube::with_number_sides(100).unwrap();
+        let mut cubits = Vec::new();
+        for z in -99..=99 {
+            if z % 2 == 0 {
+                continue;
+            }
+            for x in -99..=99 {
+                if x % 2 == 0 {
+                    continue;
+                }
+                for y in -99..=99 {
+                    if y % 2 == 0 {
+                        continue;
+                    }
+                    if x > -99 && x < 99 && y > -99 && y < 99 && z > -99 && z < 99 {
+                        continue;
+                    }
+                    cubits.push(Cubit::std_from_position(Vector3::new(x, y, z)))
+                }
+            }
+        }
+        assert_eq!(cube, Cube { sides: 100, cubits })
     }
 }
