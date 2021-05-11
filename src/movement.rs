@@ -14,6 +14,7 @@ pub(crate) enum LayerInner {
 }
 
 impl From<Layer> for LayerInner {
+    #[inline]
     fn from(l: Layer) -> Self {
         match l {
             Layer::Single(s) => LayerInner::Single(s),
@@ -33,6 +34,7 @@ pub(crate) enum AxisInner {
 }
 
 impl From<Axis> for AxisInner {
+    #[inline]
     fn from(a: Axis) -> Self {
         match a {
             Axis::X => AxisInner::X,
@@ -56,6 +58,7 @@ pub enum Axis {
 impl TryFrom<AxisInner> for Axis {
     type Error = Error;
 
+    #[inline]
     fn try_from(value: AxisInner) -> Result<Self, Self::Error> {
         match value {
             AxisInner::X => Ok(Axis::X),
@@ -74,6 +77,7 @@ pub enum MoveType {
 }
 
 impl MoveType {
+    #[inline]
     fn opposite(&self) -> Self {
         match self {
             MoveType::Clockwise => MoveType::CounterClockwise,
@@ -91,6 +95,7 @@ pub struct Move {
 
 impl Move {
     /// Rotate the top side of the cube.
+    #[inline]
     pub fn rotate_top(layer: Layer, move_type: MoveType) -> Self {
         Move {
             move_type,
@@ -100,6 +105,7 @@ impl Move {
     }
 
     /// Rotate the bottom side of the cube.
+    #[inline]
     pub fn rotate_bottom(layer: Layer, move_type: MoveType) -> Self {
         Move {
             move_type,
@@ -109,6 +115,7 @@ impl Move {
     }
 
     /// Rotate the left side of the cube.
+    #[inline]
     pub fn rotate_left(layer: Layer, move_type: MoveType) -> Self {
         Move {
             move_type,
@@ -118,6 +125,7 @@ impl Move {
     }
 
     /// Rotate the right side of the cube.
+    #[inline]
     pub fn rotate_right(layer: Layer, move_type: MoveType) -> Self {
         Move {
             move_type,
@@ -127,6 +135,7 @@ impl Move {
     }
 
     /// Rotate the front side of the cube.
+    #[inline]
     pub fn rotate_front(layer: Layer, move_type: MoveType) -> Self {
         Move {
             move_type,
@@ -136,6 +145,7 @@ impl Move {
     }
 
     /// Rotate the back side of the cube.
+    #[inline]
     pub fn rotate_back(layer: Layer, move_type: MoveType) -> Self {
         Move {
             move_type,
@@ -145,6 +155,7 @@ impl Move {
     }
 
     /// Rotate the whole cube around an axis.
+    #[inline]
     pub fn rotate_cube(axis: Axis, move_type: MoveType) -> Self {
         Move {
             move_type,
@@ -153,6 +164,7 @@ impl Move {
         }
     }
 
+    #[inline]
     pub(crate) fn rotation_matrix(&self) -> &Matrix3<isize> {
         match self.normalize_axis_move_type() {
             (Axis::X, MoveType::Clockwise) => &ROT_MAT_X_CW,
@@ -167,6 +179,7 @@ impl Move {
         }
     }
 
+    #[inline]
     fn normalize_axis_move_type(&self) -> (Axis, MoveType) {
         match self.axis {
             AxisInner::NegX => (Axis::X, self.move_type.opposite()),

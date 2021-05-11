@@ -24,9 +24,9 @@ impl Cube {
         let size = full - (sides - 2).pow(3);
         let mut cube = Cube {
             sides,
-            cubits: Vec::with_capacity(size),
+            cubits: Vec::with_capacity(0),
         };
-        let indexes: Vec<Vector3<isize>> = (0..full)
+        let cubits = (0..full)
             .filter_map(|i| {
                 let v = cube.index_to_coords(i);
                 let ranges = cube.ranges();
@@ -37,28 +37,29 @@ impl Cube {
                     || &v[(2)] == ranges.start()
                     || &v[(2)] == ranges.end()
                 {
-                    Some(v)
+                    Some(Cubit::std_from_position(v))
                 } else {
                     None
                 }
             })
-            .collect(); // Have to collect them before iterating, becuase we reference cube immutably in the iterator
-        for v in indexes {
-            cube.cubits.push(Cubit::std_from_position(v))
-        }
+            .collect();
+        cube.cubits = cubits;
         Ok(cube)
     }
 
     /// Create a 2x2x2 Cube.
+    #[inline]
     pub fn new2x2x2() -> Self {
         Self::with_number_sides(2).expect("2 is a valid number of sides")
     }
 
     /// Create a 3x3x3 Cube.
+    #[inline]
     pub fn new3x3x3() -> Self {
         Self::with_number_sides(3).expect("3 is a valid number of sides")
     }
 
+    /// Rotate the cube or sides given the move passed in.
     pub fn rotate(&mut self, mv: &Move) {
         let rot = mv.rotation_matrix();
         let mut x_range = self.ranges();
@@ -85,20 +86,14 @@ impl Cube {
         }
     }
 
+    #[inline]
     fn index_to_coords(&self, idx: usize) -> Vector3<isize> {
-        if self.even_sides() {
-            Vector3::new(
-                (2 * ((idx / self.sides) % self.sides)) as isize - (self.sides - 1) as isize,
-                (2 * (idx % self.sides)) as isize - (self.sides - 1) as isize,
-                (2 * ((idx / self.sides.pow(2)) % self.sides)) as isize - (self.sides - 1) as isize,
-            )
-        } else {
-            Vector3::new(
-                ((idx / self.sides) % self.sides) as isize - (self.sides / 2) as isize,
-                (idx % self.sides) as isize - (self.sides / 2) as isize,
-                ((idx / self.sides.pow(2)) % self.sides) as isize - (self.sides / 2) as isize,
-            )
-        }
+        let offset = self.offset() as isize;
+        let step = self.step() as isize;
+        let x = ((idx / self.sides) % self.sides) as isize * step - offset;
+        let y = (idx % self.sides) as isize * step - offset;
+        let z = ((idx / self.sides.pow(2)) % self.sides) as isize * step - offset;
+        Vector3::new(x, y, z)
     }
 
     #[inline]
@@ -107,11 +102,11 @@ impl Cube {
     }
 
     #[inline]
-    fn ranges(&self) -> RangeInclusive<isize> {
+    fn offset(&self) -> usize {
         if self.even_sides() {
-            RangeInclusive::new((self.sides - 1) as isize * -1, (self.sides - 1) as isize)
+            self.sides - 1
         } else {
-            RangeInclusive::new((self.sides / 2) as isize * -1, (self.sides / 2) as isize)
+            self.sides / 2
         }
     }
 
@@ -122,6 +117,12 @@ impl Cube {
         } else {
             1
         }
+    }
+
+    #[inline]
+    fn ranges(&self) -> RangeInclusive<isize> {
+        let offset = self.offset() as isize;
+        RangeInclusive::new(offset * -1, offset)
     }
 }
 #[cfg(test)]

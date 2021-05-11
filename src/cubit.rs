@@ -1,4 +1,4 @@
-use nalgebra::{Matrix3, Matrix3x4, Vector3};
+use nalgebra::{Matrix3, Matrix3x4, MatrixSlice3x1, Vector3};
 
 /// A Cubit a single piece of the whole puzzle. It has information about its
 /// position and orientation inside of the whole cube.
@@ -26,21 +26,18 @@ impl Cubit {
     /// Create a Cubit in the standard orientation at a given postion.
     /// Creating a Cube where all Cubits are created with this function will create
     /// a solved Cube.
+    #[inline]
     pub(crate) fn std_from_position(pos: Vector3<isize>) -> Self {
-        let (ox, oy, oz) = new_std_orientation();
-        Self::new(pos, ox, oy, oz)
+        Self::new(pos, Vector3::x(), Vector3::y(), Vector3::z())
     }
 
-    pub(crate) fn get_position(&self) -> Vector3<isize> {
-        self.inner.column(0).into()
+    #[inline]
+    pub(crate) fn get_position(&self) -> MatrixSlice3x1<isize> {
+        self.inner.column(0)
     }
 
+    #[inline]
     pub(crate) fn rotate(&mut self, rot: &Matrix3<isize>) {
         self.inner = rot * self.inner;
     }
-}
-
-#[inline]
-fn new_std_orientation() -> (Vector3<isize>, Vector3<isize>, Vector3<isize>) {
-    (Vector3::x(), Vector3::y(), Vector3::z())
 }
