@@ -1,5 +1,5 @@
-use crate::cubit::Cubit;
 use crate::error::Error;
+use crate::{cubit::Cubit, movement::Move};
 use nalgebra::Vector3;
 
 /// Represents a full Puzzle Cube.
@@ -60,6 +60,10 @@ impl Cube {
     /// Create a 3x3x3 Cube.
     pub fn new3x3x3() -> Self {
         Self::with_number_sides(3).expect("3 is a valid number of sides")
+    }
+
+    pub fn execute(&mut self, mv: &Move) {
+        let rot = mv.rotation_matrix();
     }
 
     fn index_to_coords(&self, idx: usize) -> Vector3<isize> {

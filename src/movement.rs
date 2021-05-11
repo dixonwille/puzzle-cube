@@ -1,52 +1,196 @@
-use std::ops::Range;
+use std::{
+    convert::{TryFrom, TryInto},
+    ops::Range,
+};
 
-/// Represents a possible move on a cube.
-pub struct Move {
-    inner: MoveInner,
-}
+use nalgebra::Matrix3;
 
-// QUESTION: Should a move be built based on the cube it is used for,
-// this will allow us to validate the range! But may have some funky API for usage.
+use crate::error::Error;
 
-/// Possible moves to make on a cube. Each move has a bool that specifies whether
-/// the move should be counter clockwise or not.
-enum MoveInner {
-    /// Rotate the Top layers. The boolean is to sepcify to move counter-clockwise.
-    Top(Layer, bool),
-
-    /// Rotate the Bottom layers. The boolean is to sepcify to move counter-clockwise.
-    Bottom(Layer, bool),
-
-    /// Rotate the Left layers. The boolean is to sepcify to move counter-clockwise.
-    Left(Layer, bool),
-
-    /// Rotate the Right layers. The boolean is to sepcify to move counter-clockwise.
-    Right(Layer, bool),
-
-    /// Rotate the Front layers. The boolean is to sepcify to move counter-clockwise.
-    Front(Layer, bool),
-
-    /// Rotate the Back layers. The boolean is to sepcify to move counter-clockwise.
-    Back(Layer, bool),
-
-    /// Rotate the full Cube around an axis. The boolean is to specify to move counter-clockwise.   
-    Cube(Axis, bool),
-}
-
-/// Layer describes how you are selecting which layer to apply a Move to.
-enum Layer {
-    /// Select a single layer (0 indexed)
+pub(crate) enum LayerInner {
     Single(usize),
-    /// Select a range of layers to change (0 indexed inclusive below exclusizve above)
-    Many(Range<usize>),
+    Multiple(Range<usize>),
+    WholeCube,
 }
 
-/// Describes the Axis of rotation for the Cube
-enum Axis {
-    /// Rotate Cube around the X-Axis
+impl From<Layer> for LayerInner {
+    fn from(l: Layer) -> Self {
+        match l {
+            Layer::Single(s) => LayerInner::Single(s),
+            Layer::Multiple(m) => LayerInner::Multiple(m),
+        }
+    }
+}
+
+#[derive(Clone)]
+pub(crate) enum AxisInner {
     X,
-    /// Rotate Cube around the Y-Axis
+    NegX,
     Y,
-    /// Rotate Cube around the Z-Axis
+    NegY,
+    Z,
+    NegZ,
+}
+
+impl From<Axis> for AxisInner {
+    fn from(a: Axis) -> Self {
+        match a {
+            Axis::X => AxisInner::X,
+            Axis::Y => AxisInner::Y,
+            Axis::Z => AxisInner::Z,
+        }
+    }
+}
+
+pub enum Layer {
+    Single(usize),
+    Multiple(Range<usize>),
+}
+
+pub enum Axis {
+    X,
+    Y,
     Z,
 }
+
+impl TryFrom<AxisInner> for Axis {
+    type Error = Error;
+
+    fn try_from(value: AxisInner) -> Result<Self, Self::Error> {
+        match value {
+            AxisInner::X => Ok(Axis::X),
+            AxisInner::Y => Ok(Axis::Y),
+            AxisInner::Z => Ok(Axis::Z),
+            AxisInner::NegX | AxisInner::NegY | AxisInner::NegZ => Err(Error::AxisConvert),
+        }
+    }
+}
+
+#[derive(Clone)]
+pub enum MoveType {
+    Clockwise,
+    CounterClockwise,
+    Twice,
+}
+
+impl MoveType {
+    fn opposite(&self) -> Self {
+        match self {
+            MoveType::Clockwise => MoveType::CounterClockwise,
+            MoveType::CounterClockwise => MoveType::Clockwise,
+            MoveType::Twice => MoveType::Twice,
+        }
+    }
+}
+
+pub struct Move {
+    move_type: MoveType,
+    pub(crate) axis: AxisInner,
+    pub(crate) affected_range: LayerInner,
+}
+
+impl Move {
+    /// Rotate the top side of the cube.
+    pub fn rotate_top(layer: Layer, move_type: MoveType) -> Result<Self, Error> {
+        Ok(Move {
+            move_type,
+            axis: AxisInner::Z,
+            affected_range: layer.into(),
+        })
+    }
+
+    /// Rotate the bottom side of the cube.
+    pub fn rotate_bottom(layer: Layer, move_type: MoveType) -> Result<Self, Error> {
+        Ok(Move {
+            move_type,
+            axis: AxisInner::NegZ,
+            affected_range: layer.into(),
+        })
+    }
+
+    /// Rotate the left side of the cube.
+    pub fn rotate_left(layer: Layer, move_type: MoveType) -> Result<Self, Error> {
+        Ok(Move {
+            move_type,
+            axis: AxisInner::NegY,
+            affected_range: layer.into(),
+        })
+    }
+
+    /// Rotate the right side of the cube.
+    pub fn rotate_right(layer: Layer, move_type: MoveType) -> Result<Self, Error> {
+        Ok(Move {
+            move_type,
+            axis: AxisInner::Y,
+            affected_range: layer.into(),
+        })
+    }
+
+    /// Rotate the front side of the cube.
+    pub fn rotate_front(layer: Layer, move_type: MoveType) -> Result<Self, Error> {
+        Ok(Move {
+            move_type,
+            axis: AxisInner::X,
+            affected_range: layer.into(),
+        })
+    }
+
+    /// Rotate the back side of the cube.
+    pub fn rotate_back(layer: Layer, move_type: MoveType) -> Result<Self, Error> {
+        Ok(Move {
+            move_type,
+            axis: AxisInner::NegX,
+            affected_range: layer.into(),
+        })
+    }
+
+    /// Rotate the whole cube around an axis.
+    pub fn rotate_cube(axis: Axis, move_type: MoveType) -> Result<Self, Error> {
+        Ok(Move {
+            move_type,
+            axis: axis.into(),
+            affected_range: LayerInner::WholeCube,
+        })
+    }
+
+    pub(crate) fn rotation_matrix(&self) -> &Matrix3<isize> {
+        match self.normalize_axis_move_type() {
+            (Axis::X, MoveType::Clockwise) => &ROT_MAT_X_CW,
+            (Axis::X, MoveType::CounterClockwise) => &ROT_MAT_X_CCW,
+            (Axis::X, MoveType::Twice) => &ROT_MAT_X_2,
+            (Axis::Y, MoveType::Clockwise) => &ROT_MAT_Y_CW,
+            (Axis::Y, MoveType::CounterClockwise) => &ROT_MAT_Y_CCW,
+            (Axis::Y, MoveType::Twice) => &ROT_MAT_Y_2,
+            (Axis::Z, MoveType::Clockwise) => &ROT_MAT_Z_CW,
+            (Axis::Z, MoveType::CounterClockwise) => &ROT_MAT_Z_CCW,
+            (Axis::Z, MoveType::Twice) => &ROT_MAT_Z_2,
+        }
+    }
+
+    fn normalize_axis_move_type(&self) -> (Axis, MoveType) {
+        match self.axis {
+            AxisInner::NegX => (Axis::X, self.move_type.opposite()),
+            AxisInner::NegY => (Axis::Y, self.move_type.opposite()),
+            AxisInner::NegZ => (Axis::Z, self.move_type.opposite()),
+            AxisInner::X | AxisInner::Y | AxisInner::Z => (
+                self.axis
+                    .clone()
+                    .try_into()
+                    .expect("dealing with values only supported by axis"),
+                self.move_type.clone(),
+            ),
+        }
+    }
+}
+
+static ROT_MAT_Z_CW: Matrix3<isize> = Matrix3::new(0, 1, 0, -1, 0, 0, 0, 0, 1);
+static ROT_MAT_Z_CCW: Matrix3<isize> = Matrix3::new(0, -1, 0, 1, 0, 0, 0, 0, 1);
+static ROT_MAT_Z_2: Matrix3<isize> = Matrix3::new(-1, 0, 0, 0, -1, 0, 0, 0, 1);
+
+static ROT_MAT_Y_CW: Matrix3<isize> = Matrix3::new(0, 0, -1, 0, 1, 0, 1, 0, 0);
+static ROT_MAT_Y_CCW: Matrix3<isize> = Matrix3::new(0, 0, 1, 0, 1, 0, -1, 0, 0);
+static ROT_MAT_Y_2: Matrix3<isize> = Matrix3::new(-1, 0, 0, 0, 1, 0, 0, 0, -1);
+
+static ROT_MAT_X_CW: Matrix3<isize> = Matrix3::new(1, 0, 0, 0, 0, 1, 0, -1, 0);
+static ROT_MAT_X_CCW: Matrix3<isize> = Matrix3::new(1, 0, 0, 0, 0, -1, 0, 1, 0);
+static ROT_MAT_X_2: Matrix3<isize> = Matrix3::new(1, 0, 0, 0, -1, 0, 0, 0, -1);
