@@ -48,13 +48,11 @@ impl Cube {
     }
 
     /// Create a 2x2x2 Cube.
-    #[inline]
     pub fn new2x2x2() -> Self {
         Self::with_number_sides(2).expect("2 is a valid number of sides")
     }
 
     /// Create a 3x3x3 Cube.
-    #[inline]
     pub fn new3x3x3() -> Self {
         Self::with_number_sides(3).expect("3 is a valid number of sides")
     }
@@ -86,7 +84,6 @@ impl Cube {
         }
     }
 
-    #[inline]
     fn index_to_coords(&self, idx: usize) -> Vector3<isize> {
         let offset = self.offset() as isize;
         let step = self.step() as isize;
@@ -96,12 +93,10 @@ impl Cube {
         Vector3::new(x, y, z)
     }
 
-    #[inline]
     fn even_sides(&self) -> bool {
         self.sides % 2 == 0
     }
 
-    #[inline]
     fn offset(&self) -> usize {
         if self.even_sides() {
             self.sides - 1
@@ -110,7 +105,6 @@ impl Cube {
         }
     }
 
-    #[inline]
     fn step(&self) -> usize {
         if self.even_sides() {
             2
@@ -119,7 +113,6 @@ impl Cube {
         }
     }
 
-    #[inline]
     fn ranges(&self) -> RangeInclusive<isize> {
         let offset = self.offset() as isize;
         RangeInclusive::new(offset * -1, offset)
