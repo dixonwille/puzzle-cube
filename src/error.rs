@@ -6,4 +6,6 @@ pub enum Error {
     InvalidNumberSides(usize),
     #[error("cannot convert inner axis to axis (if you see this, something went really wrong)")]
     AxisConvert,
+    #[error("move is invalid because the layer(s) specified is out of range")]
+    InvalidMoveLayer,
 }

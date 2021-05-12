@@ -1,7 +1,4 @@
-use std::{
-    convert::{TryFrom, TryInto},
-    ops::Range,
-};
+use std::convert::{TryFrom, TryInto};
 
 use nalgebra::Matrix3;
 
@@ -9,7 +6,7 @@ use crate::error::Error;
 
 pub(crate) enum LayerInner {
     Single(usize),
-    Multiple(Range<usize>),
+    Multiple(usize),
     WholeCube,
 }
 
@@ -42,11 +39,16 @@ impl From<Axis> for AxisInner {
     }
 }
 
+/// Which layer(s) to affect when making the move
 pub enum Layer {
+    /// Affect a single layer (indexed at 0)
     Single(usize),
-    Multiple(Range<usize>),
+    /// Affect X number of layers
+    /// If given 2 it will rotate the first 2 layers for the side specified
+    Multiple(usize),
 }
 
+/// Axis to rotate cube around
 pub enum Axis {
     X,
     Y,
@@ -66,10 +68,14 @@ impl TryFrom<AxisInner> for Axis {
     }
 }
 
+/// What type of move to do.
 #[derive(Clone)]
 pub enum MoveType {
+    /// Rotate clockwise
     Clockwise,
+    /// Rotate counter-clockwise
     CounterClockwise,
+    /// Rotate twice
     Twice,
 }
 
@@ -83,6 +89,7 @@ impl MoveType {
     }
 }
 
+/// Describe how to move the cube.
 pub struct Move {
     move_type: MoveType,
     pub(crate) axis: AxisInner,

@@ -58,21 +58,41 @@ impl Cube {
     }
 
     /// Rotate the cube or sides given the move passed in.
-    pub fn rotate(&mut self, mv: &Move) {
-        let rot = mv.rotation_matrix();
-        let mut x_range = self.ranges();
-        let mut y_range = self.ranges();
-        let mut z_range = self.ranges();
-        // TODO: Figure out how to restrict ranges depending on layer and axis
-        // Can be done in a bunch of conditionals but I wonder if there is a
-        // better approach
+    pub fn rotate(&mut self, mv: &Move) -> Result<(), Error> {
         match &mv.affected_range {
-            LayerInner::Single(l) => {}
-            LayerInner::Multiple(r) => {}
-            LayerInner::WholeCube => {
-                // Nothing to do here as the whole cube is the default
+            LayerInner::Single(l) if l >= &self.sides => {
+                return Err(Error::InvalidMoveLayer);
             }
-        }
+            LayerInner::Multiple(l) if l > &self.sides => {
+                return Err(Error::InvalidMoveLayer);
+            }
+            _ => {}
+        };
+        // TODO: Is there a faster way to figure out which cubits need to move.
+        // Keep in mind it may have nothing todo with ranges since this is the only
+        // place that the ranges are used
+        // May also increase perfomance by not having to clone the &usize of the layer if possible!
+        // Reducing the branches would reduce what needs to be tested in UTs
+        let (x_range, y_range, z_range) = match &mv.affected_range {
+            LayerInner::Single(l) => match &mv.axis {
+                crate::AxisInner::X => (self.pos_layer(l), self.full_range(), self.full_range()),
+                crate::AxisInner::NegX => (self.neg_layer(l), self.full_range(), self.full_range()),
+                crate::AxisInner::Y => (self.full_range(), self.pos_layer(l), self.full_range()),
+                crate::AxisInner::NegY => (self.full_range(), self.neg_layer(l), self.full_range()),
+                crate::AxisInner::Z => (self.full_range(), self.full_range(), self.pos_layer(l)),
+                crate::AxisInner::NegZ => (self.full_range(), self.full_range(), self.neg_layer(l)),
+            },
+            LayerInner::Multiple(l) => match &mv.axis {
+                crate::AxisInner::X => (self.pos_range(l), self.full_range(), self.full_range()),
+                crate::AxisInner::NegX => (self.neg_range(l), self.full_range(), self.full_range()),
+                crate::AxisInner::Y => (self.full_range(), self.pos_range(l), self.full_range()),
+                crate::AxisInner::NegY => (self.full_range(), self.neg_range(l), self.full_range()),
+                crate::AxisInner::Z => (self.full_range(), self.full_range(), self.pos_range(l)),
+                crate::AxisInner::NegZ => (self.full_range(), self.full_range(), self.neg_range(l)),
+            },
+            LayerInner::WholeCube => (self.full_range(), self.full_range(), self.full_range()),
+        };
+        let rot = mv.rotation_matrix();
         for c in self.cubits.iter_mut() {
             let pos = c.get_position();
             if x_range.contains(&pos[(0)])
@@ -82,6 +102,7 @@ impl Cube {
                 c.rotate(rot);
             }
         }
+        Ok(())
     }
 
     fn index_to_coords(&self, idx: usize) -> Vector3<isize> {
@@ -113,16 +134,41 @@ impl Cube {
         }
     }
 
-    fn ranges(&self) -> RangeInclusive<isize> {
+    fn full_range(&self) -> RangeInclusive<isize> {
         let offset = self.offset() as isize;
         RangeInclusive::new(offset * -1, offset)
+    }
+
+    fn neg_layer(&self, layer: &usize) -> RangeInclusive<isize> {
+        let layer = layer.clone() as isize * self.step() as isize;
+        let offset = self.offset() as isize * -1;
+        RangeInclusive::new(offset + layer, offset + layer)
+    }
+
+    fn pos_layer(&self, layer: &usize) -> RangeInclusive<isize> {
+        let layer = layer.clone() as isize * self.step() as isize;
+        let offset = self.offset() as isize;
+        RangeInclusive::new(offset - layer, offset - layer)
+    }
+    fn neg_range(&self, layers: &usize) -> RangeInclusive<isize> {
+        let layers = (layers.clone() as isize - 1) * self.step() as isize;
+        let offset = self.offset() as isize * -1;
+        RangeInclusive::new(offset, offset + layers)
+    }
+    fn pos_range(&self, layers: &usize) -> RangeInclusive<isize> {
+        let layers = (layers.clone() as isize - 1) * self.step() as isize;
+        let offset = self.offset() as isize;
+        RangeInclusive::new(offset - layers, offset)
     }
 }
 #[cfg(test)]
 mod test {
     use super::Cube;
-    use crate::cubit::Cubit;
-    use crate::error::Error;
+    use crate::{
+        cubit::Cubit,
+        error::Error,
+        movement::{Layer, Move, MoveType},
+    };
     use nalgebra::Vector3;
 
     #[test]
